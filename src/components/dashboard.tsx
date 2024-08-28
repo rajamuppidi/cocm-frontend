@@ -1,18 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, Fragment } from "react";
+import { useSelector, useDispatch } from 'react-redux';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Dialog, Transition } from '@headlessui/react';
-import PatientEnrollment from "@/components/patient-enrollment";
-import Snackbar from '@mui/material/Snackbar';
-import MuiAlert, { AlertProps } from '@mui/material/Alert';
-
+import { RootState, AppDispatch } from '@/lib/store';
+import PatientEnrollment from '@/components/patient-enrollment';  // Adjust the import path as needed
 
 // Icon components
-function ActivityIcon(props) {
+function ActivityIcon(props: React.JSX.IntrinsicAttributes & React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
@@ -20,7 +18,7 @@ function ActivityIcon(props) {
   );
 }
 
-function BarChartIcon(props) {
+function BarChartIcon(props: React.JSX.IntrinsicAttributes & React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" x2="12" y1="20" y2="10" />
@@ -30,7 +28,7 @@ function BarChartIcon(props) {
   );
 }
 
-function CalendarIcon(props) {
+function CalendarIcon(props: React.JSX.IntrinsicAttributes & React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M8 2v4" />
@@ -41,7 +39,7 @@ function CalendarIcon(props) {
   );
 }
 
-function ClockIcon(props) {
+function ClockIcon(props: React.JSX.IntrinsicAttributes & React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
@@ -50,7 +48,7 @@ function ClockIcon(props) {
   );
 }
 
-function SearchIcon(props) {
+function SearchIcon(props: React.JSX.IntrinsicAttributes & React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8" />
@@ -59,7 +57,7 @@ function SearchIcon(props) {
   );
 }
 
-function UserPlusIcon(props) {
+function UserPlusIcon(props: React.JSX.IntrinsicAttributes & React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -70,7 +68,7 @@ function UserPlusIcon(props) {
   );
 }
 
-function UsersIcon(props) {
+function UsersIcon(props: React.JSX.IntrinsicAttributes & React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -81,7 +79,7 @@ function UsersIcon(props) {
   );
 }
 
-function XIcon(props) {
+function XIcon(props: React.JSX.IntrinsicAttributes & React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 6 6 18" />
@@ -90,52 +88,63 @@ function XIcon(props) {
   );
 }
 
-const Alert = React.forwardRef<HTMLDivElement, AlertProps>(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
+interface DashboardProps {
+  user: any;
+}
 
-export function Dashboard({ user, selectedClinic }) {
-  const [clinicData, setClinicData] = useState(null);
+interface ClinicData {
+  totalPatients: number;
+  activePatients: number;
+  totalMinutesTracked: number;
+  averageMinutesPerPatient: number;
+  newPatients: number;
+  followUpAppointments: number;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ user }) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const selectedClinic = useSelector((state: RootState) => state.clinic.selectedClinic);
+  const [clinicData, setClinicData] = useState<ClinicData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
-  const [openSnackbar, setOpenSnackbar] = useState(false);
 
   useEffect(() => {
-    console.log('Selected Clinic:', selectedClinic); // Debug log
     if (selectedClinic?.id) {
       fetchClinicData(selectedClinic.id);
     }
   }, [selectedClinic]);
 
-  const fetchClinicData = async (clinicId) => {
-    try {
-      const response = await fetch(`http://localhost:4353/api/clinics/${clinicId}/data`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Fetched Clinic Data:', data); // Debug log
-        setClinicData(data);
-      } else {
-        console.error('Error fetching clinic data:', response.statusText);
-      }
-    } catch (error) {
-      console.error('Error fetching clinic data:', error);
-    }
-  };
-
   const handleEnrollmentSuccess = () => {
-    fetchClinicData(selectedClinic.id); // Fetch updated data
-    setOpenSnackbar(true); // Show success message
-    setShowEnrollmentForm(false); // Close the enrollment form
-  };
-
-  const handleCloseSnackbar = (event?: React.SyntheticEvent, reason?: string) => {
-    if (reason === 'clickaway') {
-      return;
+    setShowEnrollmentForm(false);
+    // Optionally, refresh the clinic data here
+    if (selectedClinic?.id) {
+      fetchClinicData(selectedClinic.id);
     }
-    setOpenSnackbar(false);
   };
 
-  if (!clinicData) {
-    return <div>Loading clinic data...</div>;
+  const fetchClinicData = async (clinicId: number) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:4353/api/clinics/${clinicId}/data`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch clinic data');
+      }
+      const data = await response.json();
+      setClinicData(data);
+      setLoading(false);
+    } catch (err) {
+      setError('Error fetching clinic data');
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div>Loading dashboard data...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
   }
 
   return (
@@ -143,7 +152,7 @@ export function Dashboard({ user, selectedClinic }) {
       <header className="flex items-center justify-between bg-gray-800 p-4 text-white">
         <h1 className="text-xl">Dashboard</h1>
         <div>
-          Current Clinic: {selectedClinic.name}
+          Current Clinic: {selectedClinic?.name}
         </div>
       </header>
       <main className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-4 p-4 md:gap-8 md:p-10">
@@ -154,7 +163,7 @@ export function Dashboard({ user, selectedClinic }) {
               <UsersIcon className="w-6 h-6 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{clinicData.totalPatients}</div>
+              <div className="text-2xl font-bold">{clinicData?.totalPatients}</div>
               <p className="text-xs text-muted-foreground">+5.2% from last month</p>
             </CardContent>
           </Card>
@@ -164,7 +173,7 @@ export function Dashboard({ user, selectedClinic }) {
               <ActivityIcon className="w-6 h-6 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{clinicData.activePatients}</div>
+              <div className="text-2xl font-bold">{clinicData?.activePatients}</div>
               <p className="text-xs text-muted-foreground">+3.1% from last month</p>
             </CardContent>
           </Card>
@@ -174,7 +183,7 @@ export function Dashboard({ user, selectedClinic }) {
               <ClockIcon className="w-6 h-6 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{clinicData.totalMinutesTracked}</div>
+              <div className="text-2xl font-bold">{clinicData?.totalMinutesTracked}</div>
               <p className="text-xs text-muted-foreground">+12.7% from last month</p>
             </CardContent>
           </Card>
@@ -184,7 +193,7 @@ export function Dashboard({ user, selectedClinic }) {
               <BarChartIcon className="w-6 h-6 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{clinicData.averageMinutesPerPatient}</div>
+              <div className="text-2xl font-bold">{clinicData?.averageMinutesPerPatient}</div>
               <p className="text-xs text-muted-foreground">+2.1% from last month</p>
             </CardContent>
           </Card>
@@ -193,37 +202,37 @@ export function Dashboard({ user, selectedClinic }) {
           <Card className="bg-white text-black w-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Patient Enrollment</CardTitle>
-              <UserPlusIcon className="w-6 h-6 text-muted-foreground" />
+              <UsersIcon className="w-6 h-6 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">+{clinicData.newPatients}</div>
+              <div className="text-2xl font-bold">+{clinicData?.newPatients}</div>
               <p className="text-xs text-muted-foreground">New patients this month</p>
             </CardContent>
-            <CardFooter>
-              <Button variant="outline" size="sm" onClick={() => setShowEnrollmentForm(true)}>
+            <CardContent>
+              <Button variant="outline" size="sm" onClick={() => setShowEnrollmentForm(true)} >
                 Enroll New Patient
               </Button>
-            </CardFooter>
+            </CardContent>
           </Card>
           <Card className="bg-white text-black">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Follow-up Appointments</CardTitle>
-              <CalendarIcon className="w-6 h-6 text-muted-foreground" />
+              <ClockIcon className="w-6 h-6 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">+{clinicData.followUpAppointments}</div>
+              <div className="text-2xl font-bold">+{clinicData?.followUpAppointments}</div>
               <p className="text-xs text-muted-foreground">Scheduled this month</p>
             </CardContent>
-            <CardFooter>
+            <CardContent>
               <Button variant="outline" size="sm">
                 Schedule Follow-up
               </Button>
-            </CardFooter>
+            </CardContent>
           </Card>
           <Card className="bg-white text-black">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="textyou-sm font-medium">Upcoming Appointments</CardTitle>
-              <CalendarIcon className="w-6 h-6 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Upcoming Appointments</CardTitle>
+              <ClockIcon className="w-6 h-6 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <Calendar className="w-full" />
@@ -244,49 +253,14 @@ export function Dashboard({ user, selectedClinic }) {
           </Popover>
         </div>
       </main>
-
-      <Transition appear show={showEnrollmentForm} as={Fragment}>
-        <Dialog as="div" className="relative z-10" onClose={() => {}}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black bg-opacity-25" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <PatientEnrollment selectedClinic={selectedClinic} onClose={() => setShowEnrollmentForm(false)} onEnrollmentSuccess={handleEnrollmentSuccess} />
-                  <Button className="mt-4" onClick={() => setShowEnrollmentForm(false)}>Close</Button>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </div>
-        </Dialog>
-      </Transition>
-
-      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
-        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
-          Patient enrolled successfully!
-        </Alert>
-      </Snackbar>
+      {showEnrollmentForm && (
+        <PatientEnrollment
+          onClose={() => setShowEnrollmentForm(false)}
+          onEnrollmentSuccess={handleEnrollmentSuccess}
+        />
+      )}
     </div>
   );
-}
+};
 
-export default Dashboard; // Ensure default export
+export default Dashboard;

@@ -1,7 +1,11 @@
+// components/controls/AuthenticatedLayout.tsx
 'use client';
 
-import React, { ReactNode, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { ReactNode, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useDispatch, useSelector } from 'react-redux';
+import { setClinic } from '@/lib/clinicSlice';
+import { RootState, AppDispatch } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronDownIcon } from '@heroicons/react/solid';
@@ -13,27 +17,50 @@ interface AuthenticatedLayoutProps {
   user: any;
 }
 
+interface Clinic {
+  id: number;
+  name: string;
+}
+
 const AuthenticatedLayout = ({ children, user }: AuthenticatedLayoutProps) => {
   const router = useRouter();
-  const [selectedClinic, setSelectedClinic] = useState(user?.clinics?.[0] || null);
+  const pathname = usePathname();
+  const dispatch = useDispatch<AppDispatch>();
+  const selectedClinic = useSelector((state: RootState) => state.clinic.selectedClinic);
 
   useEffect(() => {
     if (!user) {
       router.push('/');
-    } else if (user.role !== 'Admin' && router.pathname !== '/dashboard') {
+    } else if (user.role !== 'Admin' && pathname !== '/dashboard' && pathname !== '/active-patients') {
       router.push('/dashboard');
-    } else if (user.role === 'Admin' && router.pathname !== '/admin') {
+    } else if (user.role === 'Admin' && pathname !== '/admin') {
       router.push('/admin');
     }
-  }, [user, router]);
+  }, [user, router, pathname]);
+
+  useEffect(() => {
+    if (!selectedClinic && user?.clinics?.length > 0) {
+      const storedClinic = localStorage.getItem('selectedClinic');
+      if (storedClinic) {
+        dispatch(setClinic(JSON.parse(storedClinic)));
+      } else {
+        dispatch(setClinic(user.clinics[0]));
+      }
+    }
+  }, [selectedClinic, user, dispatch]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('selectedClinic');
     window.location.href = '/';
   };
 
   const handleNavigation = (tab: string) => {
     router.push(`/admin?tab=${tab}`);
+  };
+
+  const handleClinicChange = (clinic: Clinic) => {
+    dispatch(setClinic(clinic));
   };
 
   return (
@@ -54,9 +81,47 @@ const AuthenticatedLayout = ({ children, user }: AuthenticatedLayoutProps) => {
             </>
           ) : (
             <>
-              <Button variant="ghost" className="bg-white text-black">
-                Patient 
+            <Button 
+                variant="ghost" 
+                className="text-white"
+                onClick={() => router.push('/dashboard')}
+              >
+                Dashboard
               </Button>
+              <Menu as="div" className="relative inline-block text-left">
+                <div>
+                  <Menu.Button className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-black text-sm font-medium text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-indigo-500">
+                    Patient
+                    <ChevronDownIcon className="ml-2 -mr-1 h-5 w-5" aria-hidden="true" />
+                  </Menu.Button>
+                </div>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-100"
+                  enterFrom="transform opacity-0 scale-95"
+                  enterTo="transform opacity-100 scale-100"
+                  leave="transition ease-in duration-75"
+                  leaveFrom="transform opacity-100 scale-100"
+                  leaveTo="transform opacity-0 scale-95"
+                >
+                  <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="py-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={() => router.push(`/active-patients`)}
+                            className={`${
+                              active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                            } block w-full px-4 py-2 text-left text-sm`}
+                          >
+                            Active Patients
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
               <Button variant="ghost" className="bg-white text-black">
                 Caseload
               </Button>
@@ -82,11 +147,11 @@ const AuthenticatedLayout = ({ children, user }: AuthenticatedLayoutProps) => {
                   >
                     <Menu.Items className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
                       <div className="py-1">
-                        {user.clinics.map((clinic) => (
+                        {user.clinics.map((clinic: Clinic) => (
                           <Menu.Item key={clinic.id}>
                             {({ active }) => (
                               <button
-                                onClick={() => setSelectedClinic(clinic)}
+                                onClick={() => handleClinicChange(clinic)}
                                 className={`${
                                   active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
                                 } group flex items-center px-4 py-2 text-sm w-full text-left`}
@@ -119,7 +184,7 @@ const AuthenticatedLayout = ({ children, user }: AuthenticatedLayoutProps) => {
         </div>
       </header>
       <main className="mt-16 p-4">
-        {React.cloneElement(children as React.ReactElement<any>, { user, selectedClinic })}
+        {React.cloneElement(children as React.ReactElement<any>, { user })}
       </main>
     </div>
   );

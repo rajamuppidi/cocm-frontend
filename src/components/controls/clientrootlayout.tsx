@@ -1,4 +1,4 @@
-
+// components/controls/clientrootlayout.tsx
 'use client';
 
 import React, { ReactNode, useEffect, useState } from 'react';
@@ -6,6 +6,10 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import AuthenticatedLayout from '@/components/controls/AuthenticatedLayout';
 import { jwtDecode } from 'jwt-decode';
 import dynamic from 'next/dynamic';
+import ActivePatientsPage from '@/app/active-patients/page';
+import { useDispatch, useSelector } from 'react-redux';
+import { setClinic, initializeClinic } from '@/lib/clinicSlice';
+import { RootState, AppDispatch } from '@/lib/store';
 
 interface ClientRootLayoutProps {
   children: ReactNode;
@@ -21,17 +25,22 @@ interface User {
 
 const Clinics = dynamic(() => import('@/components/Clinics'));
 const Users = dynamic(() => import('@/components/Users'));
-const Dashboard = dynamic(() => import('@/components/dashboard')); // Correct dynamic import
+const Dashboard = dynamic(() => import('@/components/dashboard'));
 
 const ClientRootLayout = ({ children }: ClientRootLayoutProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const dispatch = useDispatch<AppDispatch>();
+  const selectedClinic = useSelector((state: RootState) => state.clinic.selectedClinic);
   const isAuthenticatedRoute = pathname !== '/';
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('clinics');
   const [loading, setLoading] = useState(true);
-  const [selectedClinic, setSelectedClinic] = useState(null);
+
+  useEffect(() => {
+    dispatch(initializeClinic());
+  }, [dispatch]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -54,10 +63,17 @@ const ClientRootLayout = ({ children }: ClientRootLayoutProps) => {
           setLoading(false);
           if (data.role === 'Admin' && pathname !== '/admin') {
             router.push('/admin');
-          } else if (data.role !== 'Admin' && pathname !== '/dashboard') {
+          } else if (data.role !== 'Admin' && pathname !== '/dashboard' && pathname !== '/active-patients' ) {
             router.push('/dashboard');
           }
-          setSelectedClinic(data.clinics[0]); // Set the first clinic as default
+          if (data.clinics && data.clinics.length > 0 && !selectedClinic) {
+            const storedClinic = localStorage.getItem('selectedClinic');
+            if (storedClinic) {
+              dispatch(setClinic(JSON.parse(storedClinic)));
+            } else {
+              dispatch(setClinic(data.clinics[0]));
+            }
+          }
         })
         .catch(error => {
           console.error('Error fetching user:', error);
@@ -66,7 +82,7 @@ const ClientRootLayout = ({ children }: ClientRootLayoutProps) => {
     } else {
       setLoading(false);
     }
-  }, [pathname]);
+  }, [pathname, dispatch, selectedClinic, router]);
 
   useEffect(() => {
     if (user?.role === 'Admin') {
@@ -79,21 +95,31 @@ const ClientRootLayout = ({ children }: ClientRootLayoutProps) => {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
+  const renderContent = () => {
+    if (user?.role === 'Admin') {
+      switch (activeTab) {
+        case 'clinics':
+          return <Clinics />;
+        case 'users':
+          return <Users />;
+        default:
+          return <div>Settings Content</div>;
+      }
+    } else {
+      switch (pathname) {
+        case '/active-patients':
+          return <ActivePatientsPage />;
+        default:
+          return <Dashboard user={user} />;
+      }
+    }
+  };
+
   return (
     <div>
       {isAuthenticatedRoute ? (
         <AuthenticatedLayout user={user}>
-          {user?.role === 'Admin' ? (
-            activeTab === 'clinics' ? (
-              <Clinics />
-            ) : activeTab === 'users' ? (
-              <Users />
-            ) : (
-              <div>Settings Content</div>
-            )
-          ) : (
-            <Dashboard user={user} selectedClinic={selectedClinic} />
-          )}
+          {renderContent()}
         </AuthenticatedLayout>
       ) : (
         <div className="min-h-screen flex items-center justify-center">{children}</div>
