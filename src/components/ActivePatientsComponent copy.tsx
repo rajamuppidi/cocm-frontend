@@ -18,10 +18,6 @@ import {
   CircularProgress,
   useTheme,
   useMediaQuery,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
 } from '@mui/material';
 import { visuallyHidden } from '@mui/utils';
 import EditIcon from '@mui/icons-material/Edit';
@@ -35,9 +31,18 @@ interface Patient {
   mrn: string;
   firstName: string;
   lastName: string;
-  dob: string;
-  enrollmentDate: string;
-  careManager: string;
+  status: string;
+  phq9First: number;
+  phq9Last: number;
+  gad7First: number;
+  gad7Last: number;
+  initialAssessmentDate: string;
+  lastFollowUpDate: string;
+  lastPsychiatricConsultDate: string;
+  lastRelapsePlanDate: string;
+  totalContacts: number;
+  weeksSinceInitialAssessment: number;
+  minutesThisMonth: number;
 }
 
 type Order = 'asc' | 'desc';
@@ -52,9 +57,18 @@ const headCells: HeadCell[] = [
   { id: 'mrn', numeric: false, label: 'MRN' },
   { id: 'firstName', numeric: false, label: 'First Name' },
   { id: 'lastName', numeric: false, label: 'Last Name' },
-  { id: 'dob', numeric: false, label: 'Date of Birth' },
-  { id: 'enrollmentDate', numeric: false, label: 'Enrollment Date' },
-  { id: 'careManager', numeric: false, label: 'Care Manager' },
+  { id: 'status', numeric: false, label: 'Status' },
+  { id: 'phq9First', numeric: true, label: 'PHQ-9 First' },
+  { id: 'phq9Last', numeric: true, label: 'PHQ-9 Last' },
+  { id: 'gad7First', numeric: true, label: 'GAD-7 First' },
+  { id: 'gad7Last', numeric: true, label: 'GAD-7 Last' },
+  { id: 'initialAssessmentDate', numeric: false, label: 'I/A' },
+  { id: 'lastFollowUpDate', numeric: false, label: 'F/U' },
+  { id: 'lastPsychiatricConsultDate', numeric: false, label: 'P/C' },
+  { id: 'lastRelapsePlanDate', numeric: false, label: 'RPP' },
+  { id: 'totalContacts', numeric: true, label: '# Sessions' },
+  { id: 'weeksSinceInitialAssessment', numeric: true, label: 'Wks since I/A' },
+  { id: 'minutesThisMonth', numeric: true, label: 'Minutes This Month' },
 ];
 
 function EnhancedTableHead(props: {
@@ -78,7 +92,9 @@ function EnhancedTableHead(props: {
             sx={{ 
               backgroundColor: 'black', 
               color: 'white', 
-              fontWeight: 'bold' 
+              fontWeight: 'bold', 
+              whiteSpace: 'nowrap',
+              padding: '16px 8px',
             }}
           >
             <TableSortLabel
@@ -205,7 +221,7 @@ const ActivePatientsComponent: React.FC = () => {
 
   return (
     <Box sx={{ flexGrow: 1, backgroundColor: 'background.default', minHeight: '100vh', py: 4 }}>
-      <Container maxWidth="xl">
+      <Container maxWidth={false}>
         <Typography variant="h4" gutterBottom sx={{ color: 'text.primary', fontWeight: 'bold' }}>
           Active Patients
         </Typography>
@@ -231,8 +247,8 @@ const ActivePatientsComponent: React.FC = () => {
           <Typography color="error">{error}</Typography>
         ) : (
           <Paper elevation={3} sx={{ width: '100%', overflow: 'hidden' }}>
-            <TableContainer sx={{ maxHeight: 440 }}>
-              <Table stickyHeader aria-label="sticky table">
+            <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
+            <Table stickyHeader aria-label="sticky table" sx={{ minWidth: 2000 }}>
                 <EnhancedTableHead
                   order={order}
                   orderBy={orderBy}
@@ -241,22 +257,21 @@ const ActivePatientsComponent: React.FC = () => {
                 <TableBody>
                   {paginatedPatients.map((patient) => (
                     <TableRow hover key={patient.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                      {!isMobile && (
-                        <>
-                          <TableCell>{patient.mrn}</TableCell>
-                          <TableCell>{patient.firstName}</TableCell>
-                          <TableCell>{patient.lastName}</TableCell>
-                          <TableCell>{patient.dob}</TableCell>
-                          <TableCell>{patient.enrollmentDate}</TableCell>
-                          <TableCell>{patient.careManager}</TableCell>
-                        </>
-                      )}
-                      {isMobile && (
-                        <TableCell>
-                          <Typography variant="subtitle2">{`${patient.firstName} ${patient.lastName}`}</Typography>
-                          <Typography variant="body2" color="text.secondary">{`MRN: ${patient.mrn}`}</Typography>
-                        </TableCell>
-                      )}
+                      <TableCell>{patient.mrn}</TableCell>
+                      <TableCell>{patient.firstName}</TableCell>
+                      <TableCell>{patient.lastName}</TableCell>
+                      <TableCell>{patient.status}</TableCell>
+                      <TableCell align="right">{patient.phq9First}</TableCell>
+                      <TableCell align="right">{patient.phq9Last}</TableCell>
+                      <TableCell align="right">{patient.gad7First}</TableCell>
+                      <TableCell align="right">{patient.gad7Last}</TableCell>
+                      <TableCell>{patient.initialAssessmentDate}</TableCell>
+                      <TableCell>{patient.lastFollowUpDate}</TableCell>
+                      <TableCell>{patient.lastPsychiatricConsultDate}</TableCell>
+                      <TableCell>{patient.lastRelapsePlanDate}</TableCell>
+                      <TableCell align="right">{patient.totalContacts}</TableCell>
+                      <TableCell align="right">{patient.weeksSinceInitialAssessment}</TableCell>
+                      <TableCell align="right">{patient.minutesThisMonth}</TableCell>
                       <TableCell align="center">
                         <Tooltip title="View">
                           <IconButton size="small" color="primary" onClick={() => handleView(patient.id)}>

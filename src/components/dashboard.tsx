@@ -101,7 +101,7 @@ interface ClinicData {
   followUpAppointments: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const dispatch = useDispatch<AppDispatch>();
   const selectedClinic = useSelector((state: RootState) => state.clinic.selectedClinic);
   const [clinicData, setClinicData] = useState<ClinicData | null>(null);
